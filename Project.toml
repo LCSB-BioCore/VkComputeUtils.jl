@@ -1,0 +1,22 @@
+name = "VkComputeUtils"
+uuid = "e89ef9dd-6d4d-4c66-b664-890fc50838c9"
+authors = ["Mirek Kratochvil <miroslav.kratochvil@uni.lu>"]
+version = "0.1.0"
+
+[deps]
+SwiftShader_jll = "c404ff5a-e271-5628-8eaa-423d39d64c15"
+Vulkan = "9f14b124-c50e-4008-a7d4-969b3a6cd68a"
+glslang_jll = "6fd5517d-459c-5c5a-9b1a-c968b4e37a81"
+
+[compat]
+Vulkan = "0.4"
+glslang_jll = "11"
+julia = "1"
+
+[extras]
+Documenter = "e30172f5-a6a5-5a46-863b-614d45cd2de4"
+SwiftShader_jll = "c404ff5a-e271-5628-8eaa-423d39d64c15"
+Test = "8dfed614-e22c-5e08-85e1-65c5234f0b40"
+
+[targets]
+test = ["Test", "Documenter", "SwiftShader_jll"]
