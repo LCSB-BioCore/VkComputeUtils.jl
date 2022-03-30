@@ -35,15 +35,13 @@ function ComputeShaderPipeline(
     dsl = unwrap(
         create_descriptor_set_layout(
             device,
-            [
-                DescriptorSetLayoutBinding(
-                    0,
-                    DESCRIPTOR_TYPE_STORAGE_BUFFER,
-                    n_buffers,
-                    SHADER_STAGE_COMPUTE_BIT,
-                    Sampler[],
-                ),
-            ],
+            DescriptorSetLayoutBinding.(
+                0:(n_buffers-1),
+                DESCRIPTOR_TYPE_STORAGE_BUFFER,
+                1,
+                SHADER_STAGE_COMPUTE_BIT,
+                Ref(Sampler[]),
+            ),
         ),
     )
 
