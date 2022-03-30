@@ -10,7 +10,7 @@ makedocs(
 )
 
 deploydocs(
-    repo = "github.com/LCSB-BioCore/SBML.jl.git",
+    repo = "github.com/LCSB-BioCore/VkComputeUtils.jl.git",
     target = "build",
     branch = "gh-pages",
     push_preview = true,
