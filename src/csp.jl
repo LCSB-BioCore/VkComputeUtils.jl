@@ -86,7 +86,7 @@ function ComputeShaderPipeline(
         create_descriptor_pool(
             device,
             1,
-            [DescriptorPoolSize(DESCRIPTOR_TYPE_STORAGE_BUFFER, 1)],
+            [DescriptorPoolSize(DESCRIPTOR_TYPE_STORAGE_BUFFER, n_buffers)],
         ),
     )
 
