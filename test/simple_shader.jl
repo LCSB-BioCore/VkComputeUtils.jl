@@ -24,11 +24,11 @@
 
     memorytype_local_visible = find_memory_type_idx(
         physical_device,
-        check = (mt, heap) -> hasbits(
+        check = (mt, _) -> hasbits(
             mt.property_flags,
             MEMORY_PROPERTY_HOST_VISIBLE_BIT | MEMORY_PROPERTY_DEVICE_LOCAL_BIT,
         ),
-        score = (mt, heap) -> heap.size,
+        score = (_, heap) -> heap.size,
     )
 
     items = 100
