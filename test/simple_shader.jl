@@ -85,14 +85,14 @@
     """
 
     const_local_size_x = UInt32(32)
-    cpl = ComputeShaderPipeline(
+    csp = ComputeShaderPipeline(
         device,
         shader_code,
         1,
         (const_local_size_x,),
         shader_push_consts,
     )
-    @test cpl isa ComputeShaderPipeline{shader_push_consts,1}
+    @test csp isa ComputeShaderPipeline{shader_push_consts,1}
 
     cmdpool = CommandPool(device, qfam_idx)
     cbufs = unwrap(
@@ -105,7 +105,7 @@
 
     compute_q = get_device_queue(device, qfam_idx, 0)
 
-    write_descriptor_set_buffers(device, cpl, [buffer])
+    write_descriptor_set_buffers(device, csp, [buffer])
 
     begin_command_buffer(
         cbuf,
@@ -116,7 +116,7 @@
 
     cmd_bind_dispatch(
         cbuf,
-        cpl,
+        csp,
         shader_push_consts(some_val, items),
         n_blocks(items, const_local_size_x),
         1,
@@ -125,7 +125,7 @@
     end_command_buffer(cbuf)
 
     queue_submit(compute_q, [SubmitInfo([], [], [cbuf], [])])
-    GC.@preserve cpl begin
+    GC.@preserve csp begin
         unwrap(queue_wait_idle(compute_q))
     end
 
