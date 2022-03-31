@@ -46,13 +46,7 @@
     mem = DeviceMemory(device, mem_size, memorytype_local_visible)
     @test mem isa DeviceMemory
 
-    memptr = map_memory(device, mem, 0, mem_size)
-    data = unsafe_wrap(
-        Vector{Float32},
-        convert(Ptr{Float32}, unwrap(memptr)),
-        items,
-        own = false,
-    )
+    data = map_memory_as_vector(device, mem, 0, items, Float32)
     data .= 0
     flush_mapped_memory_ranges(device, [MappedMemoryRange(mem, 0, mem_size)])
 
