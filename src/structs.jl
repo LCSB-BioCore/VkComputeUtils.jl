@@ -14,3 +14,7 @@ struct ComputeShaderPipeline{PushConstsT,NBuffers}
     descriptor_pool::DescriptorPool
     descriptor_sets::Vector{DescriptorSet}
 end
+
+struct PushConstantsHolder{PushConstsT}
+    x::Vector{PushConstsT}
+end

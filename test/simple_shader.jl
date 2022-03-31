@@ -113,19 +113,13 @@
     )
 
     some_val = 1.2345
+    push_consts = hold_push_constants(csp, some_val, items)
 
-    cmd_bind_dispatch(
-        cbuf,
-        csp,
-        shader_push_consts(some_val, items),
-        n_blocks(items, const_local_size_x),
-        1,
-        1,
-    )
+    cmd_bind_dispatch(cbuf, csp, push_consts, n_blocks(items, const_local_size_x), 1, 1)
     end_command_buffer(cbuf)
 
     queue_submit(compute_q, [SubmitInfo([], [], [cbuf], [])])
-    GC.@preserve csp begin
+    GC.@preserve csp push_consts cbuf begin
         unwrap(queue_wait_idle(compute_q))
     end
 

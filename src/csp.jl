@@ -124,6 +124,17 @@ function write_descriptor_set_buffers(
 end
 
 """
+    hold_push_constants(t::T, args...)
+    hold_push_constants(csp::ComputeShaderPipeline{PushConstsT, NBuffers}, args...) where{PushConstsT, NBuffers}
+
+A simple helper to create a "holding" structure for the push constants.
+"""
+hold_push_constants(
+    csp::ComputeShaderPipeline{PushConstsT,NBuffers},
+    args...,
+) where {PushConstsT,NBuffers} = PushConstantsHolder{PushConstsT}([PushConstsT(args...)])
+
+"""
     cmd_bind_dispatch(cmd_buffer, csp::ComputeShaderPipeline{PushConstsT, NBuffers}, push_constants::PushConstsT, x::Int, y::Int, z::Int) where{PushConstsT, NBuffers}
 
 Write commands that properly push the constants, bind the descriptor sets and
@@ -133,20 +144,19 @@ buffer `cmd_buffer`.
 function cmd_bind_dispatch(
     cmd_buffer,
     csp::ComputeShaderPipeline{PushConstsT,NBuffers},
-    push_constants::PushConstsT,
+    push_constants::PushConstantsHolder{PushConstsT},
     x::Int,
     y::Int,
     z::Int,
 ) where {PushConstsT,NBuffers}
     cmd_bind_pipeline(cmd_buffer, PIPELINE_BIND_POINT_COMPUTE, csp.pipeline)
-    const_buf = [push_constants]
     cmd_push_constants(
         cmd_buffer,
         csp.pipeline_layout,
         SHADER_STAGE_COMPUTE_BIT,
         0,
         sizeof(PushConstsT),
-        Ptr{Nothing}(pointer(const_buf)),
+        Ptr{Nothing}(pointer(push_constants.x)),
     )
     cmd_bind_descriptor_sets(
         cmd_buffer,
