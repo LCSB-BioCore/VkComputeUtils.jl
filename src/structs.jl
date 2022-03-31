@@ -15,6 +15,11 @@ struct ComputeShaderPipeline{PushConstsT,NBuffers}
     descriptor_sets::Vector{DescriptorSet}
 end
 
+"""
+    struct PushConstantsHolder{PushConstsT}
+
+A holder for the push-constants value that holds it static while being pointed to by command buffer functions.
+"""
 struct PushConstantsHolder{PushConstsT}
-    x::Vector{PushConstsT}
+    x::Ref{PushConstsT}
 end

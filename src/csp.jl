@@ -49,7 +49,7 @@ function ComputeShaderPipeline(
         [PushConstantRange(SHADER_STAGE_COMPUTE_BIT, 0, sizeof(push_constant_type))],
     )
 
-    consts = [spec_consts]
+    consts = Ref(spec_consts)
     const_sizes = collect(sizeof.(spec_consts))
     spec_entries =
         SpecializationMapEntry.(
@@ -66,7 +66,7 @@ function ComputeShaderPipeline(
                 specialization_info = SpecializationInfo(
                     spec_entries,
                     UInt64(sizeof(spec_consts)),
-                    Ptr{UInt8}(pointer(consts)),
+                    Ptr{UInt8}(Base.unsafe_convert(Ptr{Nothing}, consts)),
                 ),
             ),
             pl,
@@ -132,10 +132,17 @@ A simple helper to create a "holding" structure for the push constants.
 hold_push_constants(
     csp::ComputeShaderPipeline{PushConstsT,NBuffers},
     args...,
-) where {PushConstsT,NBuffers} = PushConstantsHolder{PushConstsT}([PushConstsT(args...)])
+) where {PushConstsT,NBuffers} = PushConstantsHolder{PushConstsT}(Ref(PushConstsT(args...)))
 
 """
-    cmd_bind_dispatch(cmd_buffer, csp::ComputeShaderPipeline{PushConstsT, NBuffers}, push_constants::PushConstsT, x::Int, y::Int, z::Int) where{PushConstsT, NBuffers}
+    function cmd_bind_dispatch(
+        cmd_buffer,
+        csp::ComputeShaderPipeline{PushConstsT,NBuffers},
+        push_constants::PushConstantsHolder{PushConstsT},
+        x::Int,
+        y::Int,
+        z::Int,
+    ) where {PushConstsT,NBuffers}
 
 Write commands that properly push the constants, bind the descriptor sets and
 dispatch the shader over the workgroup of dimensions `(x,y,z)` to the command
@@ -156,7 +163,7 @@ function cmd_bind_dispatch(
         SHADER_STAGE_COMPUTE_BIT,
         0,
         sizeof(PushConstsT),
-        Ptr{Nothing}(pointer(push_constants.x)),
+        Base.unsafe_convert(Ptr{Nothing}, push_constants.x),
     )
     cmd_bind_descriptor_sets(
         cmd_buffer,
