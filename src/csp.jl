@@ -30,32 +30,26 @@ function ComputeShaderPipeline(
         error("Shader compilation failed (glslangValidator status: $(glslang.exitcode))")
 
     # the constant in the next line really hurt a lot
-    shader = unwrap(create_shader_module(device, 4 * length(shader_bcode), shader_bcode))
+    shader = ShaderModule(device, 4 * length(shader_bcode), shader_bcode)
 
-    dsl = unwrap(
-        create_descriptor_set_layout(
-            device,
-            [
-                DescriptorSetLayoutBinding(
-                    0,
-                    DESCRIPTOR_TYPE_STORAGE_BUFFER,
-                    n_buffers,
-                    SHADER_STAGE_COMPUTE_BIT,
-                    Sampler[],
-                ),
-            ],
+    dsl = DescriptorSetLayout(
+        device,
+        DescriptorSetLayoutBinding.(
+            0:(n_buffers-1),
+            DESCRIPTOR_TYPE_STORAGE_BUFFER,
+            1,
+            SHADER_STAGE_COMPUTE_BIT,
+            Ref(Sampler[]),
         ),
     )
 
-    pl = unwrap(
-        create_pipeline_layout(
-            device,
-            [dsl],
-            [PushConstantRange(SHADER_STAGE_COMPUTE_BIT, 0, sizeof(push_constant_type))],
-        ),
+    pl = PipelineLayout(
+        device,
+        [dsl],
+        [PushConstantRange(SHADER_STAGE_COMPUTE_BIT, 0, sizeof(push_constant_type))],
     )
 
-    consts = [spec_consts]
+    consts = Ref(spec_consts)
     const_sizes = collect(sizeof.(spec_consts))
     spec_entries =
         SpecializationMapEntry.(
@@ -72,7 +66,7 @@ function ComputeShaderPipeline(
                 specialization_info = SpecializationInfo(
                     spec_entries,
                     UInt64(sizeof(spec_consts)),
-                    Ptr{UInt8}(pointer(consts)),
+                    Ptr{UInt8}(Base.unsafe_convert(Ptr{Nothing}, consts)),
                 ),
             ),
             pl,
@@ -82,12 +76,10 @@ function ComputeShaderPipeline(
 
     p = first(first(unwrap(create_compute_pipelines(device, pcis))))
 
-    dpool = unwrap(
-        create_descriptor_pool(
-            device,
-            1,
-            [DescriptorPoolSize(DESCRIPTOR_TYPE_STORAGE_BUFFER, 1)],
-        ),
+    dpool = DescriptorPool(
+        device,
+        1,
+        [DescriptorPoolSize(DESCRIPTOR_TYPE_STORAGE_BUFFER, n_buffers)],
     )
 
     dsets =
@@ -132,7 +124,25 @@ function write_descriptor_set_buffers(
 end
 
 """
-    cmd_bind_dispatch(cmd_buffer, csp::ComputeShaderPipeline{PushConstsT, NBuffers}, push_constants::PushConstsT, x::Int, y::Int, z::Int) where{PushConstsT, NBuffers}
+    hold_push_constants(t::T, args...)
+    hold_push_constants(csp::ComputeShaderPipeline{PushConstsT, NBuffers}, args...) where{PushConstsT, NBuffers}
+
+A simple helper to create a "holding" structure for the push constants.
+"""
+hold_push_constants(
+    csp::ComputeShaderPipeline{PushConstsT,NBuffers},
+    args...,
+) where {PushConstsT,NBuffers} = PushConstantsHolder{PushConstsT}(Ref(PushConstsT(args...)))
+
+"""
+    function cmd_bind_dispatch(
+        cmd_buffer,
+        csp::ComputeShaderPipeline{PushConstsT,NBuffers},
+        push_constants::PushConstantsHolder{PushConstsT},
+        x::Int,
+        y::Int,
+        z::Int,
+    ) where {PushConstsT,NBuffers}
 
 Write commands that properly push the constants, bind the descriptor sets and
 dispatch the shader over the workgroup of dimensions `(x,y,z)` to the command
@@ -141,20 +151,19 @@ buffer `cmd_buffer`.
 function cmd_bind_dispatch(
     cmd_buffer,
     csp::ComputeShaderPipeline{PushConstsT,NBuffers},
-    push_constants::PushConstsT,
+    push_constants::PushConstantsHolder{PushConstsT},
     x::Int,
     y::Int,
     z::Int,
 ) where {PushConstsT,NBuffers}
     cmd_bind_pipeline(cmd_buffer, PIPELINE_BIND_POINT_COMPUTE, csp.pipeline)
-    const_buf = [push_constants]
     cmd_push_constants(
         cmd_buffer,
         csp.pipeline_layout,
         SHADER_STAGE_COMPUTE_BIT,
         0,
         sizeof(PushConstsT),
-        Ptr{Nothing}(pointer(const_buf)),
+        Base.unsafe_convert(Ptr{Nothing}, push_constants.x),
     )
     cmd_bind_descriptor_sets(
         cmd_buffer,
