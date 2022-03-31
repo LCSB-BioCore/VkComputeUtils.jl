@@ -48,7 +48,7 @@
 
     data = map_memory_as_vector(device, mem, 0, items, Float32)
     data .= 0
-    flush_mapped_memory_ranges(device, [MappedMemoryRange(mem, 0, mem_size)])
+    unwrap(flush_mapped_memory_ranges(device, [MappedMemoryRange(mem, 0, mem_size)]))
 
     bind_buffer_memory(device, buffer, mem, 0)
 
@@ -129,7 +129,7 @@
         unwrap(queue_wait_idle(compute_q))
     end
 
-    invalidate_mapped_memory_ranges(device, [MappedMemoryRange(mem, 0, mem_size)])
+    unwrap(invalidate_mapped_memory_ranges(device, [MappedMemoryRange(mem, 0, mem_size)]))
 
     @test isapprox(data, some_val .* (0:items-1))
 end
