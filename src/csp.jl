@@ -30,27 +30,23 @@ function ComputeShaderPipeline(
         error("Shader compilation failed (glslangValidator status: $(glslang.exitcode))")
 
     # the constant in the next line really hurt a lot
-    shader = unwrap(create_shader_module(device, 4 * length(shader_bcode), shader_bcode))
+    shader = ShaderModule(device, 4 * length(shader_bcode), shader_bcode)
 
-    dsl = unwrap(
-        create_descriptor_set_layout(
-            device,
-            DescriptorSetLayoutBinding.(
-                0:(n_buffers-1),
-                DESCRIPTOR_TYPE_STORAGE_BUFFER,
-                1,
-                SHADER_STAGE_COMPUTE_BIT,
-                Ref(Sampler[]),
-            ),
+    dsl = DescriptorSetLayout(
+        device,
+        DescriptorSetLayoutBinding.(
+            0:(n_buffers-1),
+            DESCRIPTOR_TYPE_STORAGE_BUFFER,
+            1,
+            SHADER_STAGE_COMPUTE_BIT,
+            Ref(Sampler[]),
         ),
     )
 
-    pl = unwrap(
-        create_pipeline_layout(
-            device,
-            [dsl],
-            [PushConstantRange(SHADER_STAGE_COMPUTE_BIT, 0, sizeof(push_constant_type))],
-        ),
+    pl = PipelineLayout(
+        device,
+        [dsl],
+        [PushConstantRange(SHADER_STAGE_COMPUTE_BIT, 0, sizeof(push_constant_type))],
     )
 
     consts = [spec_consts]
@@ -80,12 +76,10 @@ function ComputeShaderPipeline(
 
     p = first(first(unwrap(create_compute_pipelines(device, pcis))))
 
-    dpool = unwrap(
-        create_descriptor_pool(
-            device,
-            1,
-            [DescriptorPoolSize(DESCRIPTOR_TYPE_STORAGE_BUFFER, n_buffers)],
-        ),
+    dpool = DescriptorPool(
+        device,
+        1,
+        [DescriptorPoolSize(DESCRIPTOR_TYPE_STORAGE_BUFFER, n_buffers)],
     )
 
     dsets =

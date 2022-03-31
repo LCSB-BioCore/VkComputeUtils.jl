@@ -34,18 +34,16 @@
     items = 100
     mem_size = sizeof(Float32) * items
 
-    buffer = unwrap(
-        create_buffer(
-            device,
-            mem_size,
-            BUFFER_USAGE_STORAGE_BUFFER_BIT,
-            SHARING_MODE_EXCLUSIVE,
-            [qfam_idx],
-        ),
+    buffer = Buffer(
+        device,
+        mem_size,
+        BUFFER_USAGE_STORAGE_BUFFER_BIT,
+        SHARING_MODE_EXCLUSIVE,
+        [qfam_idx],
     )
     @test buffer isa Buffer
 
-    mem = unwrap(allocate_memory(device, mem_size, memorytype_local_visible))
+    mem = DeviceMemory(device, mem_size, memorytype_local_visible)
     @test mem isa DeviceMemory
 
     memptr = map_memory(device, mem, 0, mem_size)
@@ -102,7 +100,7 @@
     )
     @test cpl isa ComputeShaderPipeline{shader_push_consts,1}
 
-    cmdpool = unwrap(create_command_pool(device, qfam_idx))
+    cmdpool = CommandPool(device, qfam_idx)
     cbufs = unwrap(
         allocate_command_buffers(
             device,
