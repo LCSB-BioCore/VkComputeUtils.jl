@@ -114,12 +114,27 @@ pushing the constants, binding the descriptor sets, and dispatching the
 pipeline in one call:
 
 ```julia
+consts = hold_push_constants(shader, my_n_items) # materializes the push constants (this should not be GC'd)
+
 cmd_bind_dispatch(
     command_buffer, # created with allocate_command_buffers and "started" with begin_command_buffer
     shader, # created with ComputeShaderPipeline, as above
-    UInt32(my_n_items), # the contents of push constants (size of your buffer)
+    consts, # push constants data
     n_blocks(my_n_items, 1024), # number of workgroups ("threadblocks") in x direction
     1, # same for y
     1, # z
 )
+```
+
+## Viewing the host-accessible memory
+
+The mapped Vulkan memory can be viewed through Julia vectors, using some minor unsafe assumptions. [`map_memory_as_vector`](@ref) manages the conversion using properly "typed" offsets and sizes:
+
+```julia
+my_vector = map_memory_as_vector(device, someMemory, 0, 100, Float32)
+
+length(my_vector) == 100
+eltype(my_vector) == Float32
+
+my_vector .= 0 #zero out the Vulkan memory
 ```

@@ -24,39 +24,31 @@
 
     memorytype_local_visible = find_memory_type_idx(
         physical_device,
-        check = (mt, heap) -> hasbits(
+        check = (mt, _) -> hasbits(
             mt.property_flags,
             MEMORY_PROPERTY_HOST_VISIBLE_BIT | MEMORY_PROPERTY_DEVICE_LOCAL_BIT,
         ),
-        score = (mt, heap) -> heap.size,
+        score = (_, heap) -> heap.size,
     )
 
     items = 100
     mem_size = sizeof(Float32) * items
 
-    buffer = unwrap(
-        create_buffer(
-            device,
-            mem_size,
-            BUFFER_USAGE_STORAGE_BUFFER_BIT,
-            SHARING_MODE_EXCLUSIVE,
-            [qfam_idx],
-        ),
+    buffer = Buffer(
+        device,
+        mem_size,
+        BUFFER_USAGE_STORAGE_BUFFER_BIT,
+        SHARING_MODE_EXCLUSIVE,
+        [qfam_idx],
     )
     @test buffer isa Buffer
 
-    mem = unwrap(allocate_memory(device, mem_size, memorytype_local_visible))
+    mem = DeviceMemory(device, mem_size, memorytype_local_visible)
     @test mem isa DeviceMemory
 
-    memptr = map_memory(device, mem, 0, mem_size)
-    data = unsafe_wrap(
-        Vector{Float32},
-        convert(Ptr{Float32}, unwrap(memptr)),
-        items,
-        own = false,
-    )
+    data = map_memory_as_vector(device, mem, 0, items, Float32)
     data .= 0
-    flush_mapped_memory_ranges(device, [MappedMemoryRange(mem, 0, mem_size)])
+    unwrap(flush_mapped_memory_ranges(device, [MappedMemoryRange(mem, 0, mem_size)]))
 
     bind_buffer_memory(device, buffer, mem, 0)
 
@@ -93,16 +85,16 @@
     """
 
     const_local_size_x = UInt32(32)
-    cpl = ComputeShaderPipeline(
+    csp = ComputeShaderPipeline(
         device,
         shader_code,
         1,
         (const_local_size_x,),
         shader_push_consts,
     )
-    @test cpl isa ComputeShaderPipeline{shader_push_consts,1}
+    @test csp isa ComputeShaderPipeline{shader_push_consts,1}
 
-    cmdpool = unwrap(create_command_pool(device, qfam_idx))
+    cmdpool = CommandPool(device, qfam_idx)
     cbufs = unwrap(
         allocate_command_buffers(
             device,
@@ -113,7 +105,7 @@
 
     compute_q = get_device_queue(device, qfam_idx, 0)
 
-    write_descriptor_set_buffers(device, cpl, [buffer])
+    write_descriptor_set_buffers(device, csp, [buffer])
 
     begin_command_buffer(
         cbuf,
@@ -121,23 +113,17 @@
     )
 
     some_val = 1.2345
+    push_consts = hold_push_constants(csp, some_val, items)
 
-    cmd_bind_dispatch(
-        cbuf,
-        cpl,
-        shader_push_consts(some_val, items),
-        n_blocks(items, const_local_size_x),
-        1,
-        1,
-    )
+    cmd_bind_dispatch(cbuf, csp, push_consts, n_blocks(items, const_local_size_x), 1, 1)
     end_command_buffer(cbuf)
 
     queue_submit(compute_q, [SubmitInfo([], [], [cbuf], [])])
-    GC.@preserve cpl begin
+    GC.@preserve csp push_consts cbuf begin
         unwrap(queue_wait_idle(compute_q))
     end
 
-    invalidate_mapped_memory_ranges(device, [MappedMemoryRange(mem, 0, mem_size)])
+    unwrap(invalidate_mapped_memory_ranges(device, [MappedMemoryRange(mem, 0, mem_size)]))
 
     @test isapprox(data, some_val .* (0:items-1))
 end

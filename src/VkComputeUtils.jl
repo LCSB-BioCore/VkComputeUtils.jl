@@ -4,8 +4,10 @@ using Vulkan
 using glslang_jll
 
 include("structs.jl")
-include("find.jl")
+
 include("csp.jl")
+include("find.jl")
+include("memory.jl")
 include("utils.jl")
 
 # export everything that isn't prefixed with _ (inspired by JuMP.jl, thanks!)
